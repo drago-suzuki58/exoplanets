@@ -1,3 +1,6 @@
+<%
+var siteBase = (typeof basePath !== 'undefined' && basePath) ? String(basePath).replace(/\/$/, '') : '';
+%>
 <!DOCTYPE html>
 <html>
     <head>
@@ -5,13 +8,13 @@
 	<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<title>Exobirthdays. More planets, more birthdays.</title>
-	<script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
-	<script src="/jquery.html5-placeholder-shim.js"></script>
-	<link href='http://fonts.googleapis.com/css?family=Voltaire' rel='stylesheet' type='text/css'>
-	<link rel="stylesheet" href="/main.css" />
-	<script type="text/javascript" src="/exo.js"></script>
-	<script type="text/javascript" src="/editor.js"></script>
-	<script type="text/javascript" src="/ejs_production.js"></script>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+	<script src="<%= siteBase %>/jquery.html5-placeholder-shim.js"></script>
+	<link href='https://fonts.googleapis.com/css?family=Voltaire' rel='stylesheet' type='text/css'>
+	<link rel="stylesheet" href="<%= siteBase %>/main.css" />
+	<script type="text/javascript" src="<%= siteBase %>/exo.js"></script>
+	<script type="text/javascript" src="<%= siteBase %>/editor.js"></script>
+	<script type="text/javascript" src="<%= siteBase %>/ejs_production.js"></script>
     </head>
     <body>
       <div class="all_page">
@@ -89,10 +92,60 @@
 
 <script>
 
- var urlName = <%- JSON.stringify("" + ((date && date.name) || "you")) %>;
- var urlNamePerson = <%- (date && date.name && (""+date.name).toLowerCase() !== 'you') ? 3 : 2  %>;
+ var siteBase = <%- JSON.stringify(siteBase) %>;
+ function numberFromPath(value) {
+   var result = parseInt(value, 10);
+   return isNaN(result) ? null : result;
+ }
+ function dateFromPath() {
+   var path = window.location.pathname || "/";
+   if (siteBase && (path === siteBase || path.indexOf(siteBase + '/') === 0)) {
+     path = path.slice(siteBase.length) || "/";
+   }
+   var parts = path.split('/').filter(function(part) { return part.length > 0; }).map(function(part) {
+     try {
+       return decodeURIComponent(part);
+     } catch (err) {
+       return part;
+     }
+   });
+   if (parts.length < 3) return null;
+   var year = numberFromPath(parts[0]);
+   var month = numberFromPath(parts[1]);
+   var day = numberFromPath(parts[2]);
+   if (year === null || month === null || day === null) return null;
+   var result = { year: year, month: month, day: day };
+   if (parts.length >= 6) {
+     var nyear = numberFromPath(parts[3]);
+     var nmonth = numberFromPath(parts[4]);
+     var nday = numberFromPath(parts[5]);
+     if (nyear !== null && nmonth !== null && nday !== null) {
+       result.nyear = nyear;
+       result.nmonth = nmonth;
+       result.nday = nday;
+     }
+   } else if (parts.length >= 4) {
+     result.name = parts[3];
+   }
+   return result;
+ }
+ var serverDate = <% if (date) { %>{
+   year: <%= parseInt(date.year, 10) %>,
+   month: <%= parseInt(date.month, 10) %>,
+   day: <%= parseInt(date.day, 10) %>,
+   name: <%- JSON.stringify(date.name || null) %>
+   <% if (date.nyear) { %>,
+   nyear: <%= parseInt(date.nyear, 10) %>,
+   nmonth: <%= parseInt(date.nmonth, 10) %>,
+   nday: <%= parseInt(date.nday, 10) %>
+   <% } %>
+ }<% } else { %>null<% } %>;
+ var pathDate = dateFromPath();
+ var initialDate = serverDate || pathDate;
+ var urlName = "" + ((initialDate && initialDate.name) || "you");
+ var urlNamePerson = (initialDate && initialDate.name && urlName.toLowerCase() !== 'you') ? 3 : 2;
  var exo_data = <%- JSON.stringify(exo) %>;
- var unit = new EJS({url: '/unit.ejs'});
+ var unit = new EJS({url: siteBase + '/unit.ejs'});
  var now = new Date(new Date().toDateString());
 
  $(function() {
@@ -240,9 +293,9 @@
        $("#date_string").html("");
        if (window.history) {
          if (urlName === 'you') {
-           history.replaceState(null, null, "/" + goal.year + "/" + goal.month + "/" + goal.day);
+           history.replaceState(null, null, siteBase + "/" + goal.year + "/" + goal.month + "/" + goal.day);
          } else {
-           history.replaceState(null, null, "/" + goal.year + "/" + goal.month + "/" + goal.day + "/" + encodeURIComponent(urlName));
+           history.replaceState(null, null, siteBase + "/" + goal.year + "/" + goal.month + "/" + goal.day + "/" + encodeURIComponent(urlName));
          }
        }
        return false;
@@ -252,22 +305,15 @@
      setState('#birth_date_all',-1);
    };
 
-<% if (date) { %>
-     var year = <%= parseInt(date.year) %>;
-     var month = <%= parseInt(date.month) %>;
-     var day = <%= parseInt(date.day) %>;
-     editor.setDate(year, month, day);
-     <% if (date.nyear) { %>
-       var nyear = <%= parseInt(date.nyear) %>;
-       var nmonth = <%= parseInt(date.nmonth) %>;
-       var nday = <%= parseInt(date.nday) %>;
-       now = new Date(nyear,nmonth-1,nday);
-     <% } %>
-     //update();
-<% } else { %>
-     var example = <%- JSON.stringify(people[0]) %>;
-     applyDate(example.year,example.month,example.day,example,3,"Ursula K Le Guin");
-<% } %>
+     if (initialDate) {
+       if (initialDate.nyear) {
+         now = new Date(initialDate.nyear, initialDate.nmonth - 1, initialDate.nday);
+       }
+       editor.setDate(initialDate.year, initialDate.month, initialDate.day);
+     } else {
+       var example = <%- JSON.stringify(people[0]) %>;
+       applyDate(example.year,example.month,example.day,example,3,"Ursula K Le Guin");
+     }
  });
 </script>
 

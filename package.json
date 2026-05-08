@@ -4,6 +4,7 @@
   "description": "Birthdays in Space",
   "main": "index.js",
   "scripts": {
+    "build": "node scripts/build-static.js",
     "cli": "node cli.js",
     "filter": "node filter.js",
     "start": "node index.js",
