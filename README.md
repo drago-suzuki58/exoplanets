@@ -1,5 +1,8 @@
 Oh my god it is full of birthdays
 
+> [!NOTE]
+> This repository is a fork of [paulfitz/exoplanets](https://github.com/paulfitz/exoplanets), maintained at [drago-suzuki58/exoplanets](https://github.com/drago-suzuki58/exoplanets).
+
 [exo.makesweet.com](http://exo.makesweet.com)
 
 ```
